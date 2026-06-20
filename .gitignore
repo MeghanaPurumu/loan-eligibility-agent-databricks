@@ -19,7 +19,7 @@ ENV/
 
 # ── Environment / Secrets ────────────────────────────────────────────────────
 # Never commit API keys or tokens
-config/env.prod
+**/config/env.prod
 *.token
 .env
 .env.*

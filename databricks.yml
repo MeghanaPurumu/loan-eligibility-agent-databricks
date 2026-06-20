@@ -1,0 +1,11 @@
+# databricks.yml
+# Configuration to bundle and deploy Streamlit WebApp on Databricks Apps
+
+bundle:
+  name: intelligent-loan-eligibility-app
+
+resources:
+  apps:
+    intelligent-loan-assessment-agent:
+      name: intelligent-loan-assessment-agent
+      source_code_path: ./intelligent_loan_eligibility_ai_agent

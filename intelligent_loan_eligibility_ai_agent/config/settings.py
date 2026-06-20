@@ -16,7 +16,9 @@ def load_env_file(filepath: Path):
                 continue
             if "=" in line:
                 key, val = line.split("=", 1)
-                os.environ[key.strip()] = val.strip()
+                key = key.strip()
+                if key not in os.environ:
+                    os.environ[key] = val.strip()
 
 # Load env variables based on environment
 if MODE == "prod":

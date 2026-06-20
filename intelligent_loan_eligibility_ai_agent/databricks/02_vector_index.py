@@ -47,25 +47,45 @@ if IN_DATABRICKS:
     # Check if source table already exists
     table_exists = spark.catalog.tableExists(source_table)  # type: ignore[union-attr]
     if not table_exists:
-        print(f"Table '{source_table}' not found. Creating from fallback policy text...")
-
-        POLICY_TEXT = """
-        Section 1.5: Applicants must be between 21 and 60 years old at application date.
-        Section 2.1: Minimum monthly income is INR 30,000. Preferred threshold is INR 50,000.
-        Section 3.2: Credit score must be >= 600. Scores >= 750 receive premium pricing benefits.
-        Section 4.4: Debt-to-income ratio must not exceed 40% including the requested EMI.
-        Section 5.1: Maximum loan amount cannot exceed 20 times the verified monthly net income.
-        Section 2.5: Unemployed applicants and students are categorized as high-risk.
-        Section 4.2: DTI ratio below 25% is preferred. Between 25% and 40% is conditionally accepted.
-        Section 3.1: Credit bureau scores range from 300 to 900. Scores below 600 result in rejection.
-        Section 6.1: All documents must be verified by an authorized banking officer before approval.
-        """
-
+        pdf_path = f"/Volumes/{catalog}/{schema}/raw_data/loan_policy.pdf"
         rows = []
-        for i, line in enumerate(POLICY_TEXT.strip().split("\n")):
-            line = line.strip()
-            if line:
-                rows.append((str(i), line))
+        
+        try:
+            import pypdf
+            import os
+            if os.path.exists(pdf_path):
+                print(f"Reading PDF from Volume: {pdf_path}")
+                reader = pypdf.PdfReader(pdf_path)
+                line_idx = 0
+                for page_num, page in enumerate(reader.pages):
+                    text = page.extract_text()
+                    if text:
+                        # Split by double newline or line by line
+                        for line in text.split("\n"):
+                            line = line.strip()
+                            if len(line) > 20: # skip headers, page numbers, short lines
+                                rows.append((f"pdf_p{page_num}_{line_idx}", f"Page {page_num + 1}: {line}"))
+                                line_idx += 1
+                print(f"✅ Successfully parsed PDF. Loaded {len(rows)} chunks from {len(reader.pages)} pages.")
+        except Exception as pdf_err:
+            print(f"⚠️ PDF parsing skipped or failed: {pdf_err}. Using fallback policy rules.")
+
+        if not rows:
+            POLICY_TEXT = """
+            Section 1.5: Applicants must be between 21 and 60 years old at application date.
+            Section 2.1: Minimum monthly income is INR 30,000. Preferred threshold is INR 50,000.
+            Section 3.2: Credit score must be >= 600. Scores >= 750 receive premium pricing benefits.
+            Section 4.4: Debt-to-income ratio must not exceed 40% including the requested EMI.
+            Section 5.1: Maximum loan amount cannot exceed 20 times the verified monthly net income.
+            Section 2.5: Unemployed applicants and students are categorized as high-risk.
+            Section 4.2: DTI ratio below 25% is preferred. Between 25% and 40% is conditionally accepted.
+            Section 3.1: Credit bureau scores range from 300 to 900. Scores below 600 result in rejection.
+            Section 6.1: All documents must be verified by an authorized banking officer before approval.
+            """
+            for i, line in enumerate(POLICY_TEXT.strip().split("\n")):
+                line = line.strip()
+                if line:
+                    rows.append((str(i), line))
 
         from pyspark.sql.types import StructType, StructField, StringType
         schema_def = StructType([

@@ -39,9 +39,31 @@ if IN_DATABRICKS:
     try:
         spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
         spark.sql(f"CREATE SCHEMA IF NOT EXISTS {catalog}.{schema}")
-        print(f"Schema '{catalog}.{schema}' is ready.")
+        spark.sql(f"CREATE VOLUME IF NOT EXISTS {catalog}.{schema}.raw_data")
+        print(f"Unity Catalog structure '{catalog}.{schema}.raw_data' is ready.")
+
+        # Check and copy files from repo if missing in Volume
+        import shutil
+        import os
+
+        volume_dir = f"/Volumes/{catalog}/{schema}/raw_data"
+        os.makedirs(volume_dir, exist_ok=True)
+
+        for filename in ["mock_customers.csv", "loan_policy.pdf"]:
+            dest_file = os.path.join(volume_dir, filename)
+            if not os.path.exists(dest_file):
+                # Try finding in current repo context
+                for possible_src in [f"data/{filename}", f"intelligent_loan_eligibility_ai_agent/data/{filename}"]:
+                    if os.path.exists(possible_src):
+                        shutil.copy(possible_src, dest_file)
+                        print(f"✅ Copied {filename} from Repo ({possible_src}) to Volume ({dest_file})")
+                        break
+                else:
+                    print(f"⚠️ Could not locate source file {filename} in Repo directory to copy.")
+            else:
+                print(f"✅ File '{filename}' already exists in Volume.")
     except Exception as e:
-        print(f"Schema setup warning (may already exist): {e}")
+        print(f"Unity Catalog volume setup or copy warning: {e}")
 
 # ─────────────────────────────────────────────────────────────────
 # CELL 4: Read CSV and Write to Delta Table
