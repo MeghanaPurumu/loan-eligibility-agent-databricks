@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "currency": "INR",
+  "decision_order": [
+    "Not Eligible",
+    "Conditionally Eligible",
+    "Eligible"
+  ],
+  "thresholds": {
+    "min_age": 21,
+    "max_age": 60,
+    "eligible_min_income_monthly": 50000,
+    "conditional_min_income_monthly": 30000,
+    "excellent_credit_score": 750,
+    "minimum_credit_score": 600,
+    "high_liability_ratio": 0.4,
+    "conditional_liability_ratio": 0.25,
+    "max_loan_to_income_ratio": 20
+  },
+  "employment_rules": {
+    "salaried_bonus": 1,
+    "self_employed_bonus": 0,
+    "student_penalty": -2,
+    "unemployed_penalty": -5
+  },
+  "reasons_map": {
+    "age_out_of_range": "Applicant age is outside the accepted lending range.",
+    "low_income": "Monthly income is below the minimum baseline.",
+    "low_credit": "Credit score is below the acceptable lending threshold.",
+    "high_liabilities": "Existing liabilities are high relative to income.",
+    "unsupported_employment": "Employment profile is not preferred for this policy.",
+    "requested_amount_high": "Requested loan amount is high compared to income.",
+    "positive_profile": "Income, credit score, and liabilities are within preferred limits."
+  }
+}
