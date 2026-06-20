@@ -1,0 +1,72 @@
+# ── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Virtual Environments ─────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+.env/
+
+# ── Environment / Secrets ────────────────────────────────────────────────────
+# Never commit API keys or tokens
+config/env.prod
+*.token
+.env
+.env.*
+secrets.json
+
+# ── FAISS Index (binary — large files, rebuilt by ingest.py) ─────────────────
+data/faiss_index/
+*.faiss
+*.pkl
+
+# ── Databricks / IDE ─────────────────────────────────────────────────────────
+.databricks/
+.databricks-connect
+
+# ── VS Code / JetBrains ──────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.iml
+
+# ── Jupyter / IPython ────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Testing & Coverage ───────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ── Logs & Databases ─────────────────────────────────────────────────────────
+*.log
+*.db
+*.sqlite
+*.sqlite3
+loan_assessment_logs.db
+
+# ── OS files ─────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Node / npm (if any frontend tooling) ─────────────────────────────────────
+node_modules/
+npm-debug.log*
+
+# ── Temporary files ───────────────────────────────────────────────────────────
+*.tmp
+*.bak
+*.swp
+~$*
