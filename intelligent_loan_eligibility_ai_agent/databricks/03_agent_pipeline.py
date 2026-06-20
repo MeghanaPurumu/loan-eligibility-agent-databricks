@@ -15,9 +15,12 @@ import json
 os.environ["MODE"] = "prod"
 
 # Add project root to path so all modules are importable
-# In Databricks, the project is typically mounted or cloned via Repos.
-# Adjust this path to match your Databricks Repos path if needed.
-repo_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+try:
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    current_dir = os.getcwd()
+
+repo_root = os.path.join(current_dir, "..")
 sys.path.insert(0, os.path.abspath(repo_root))
 
 # ─────────────────────────────────────────────────────────────────
