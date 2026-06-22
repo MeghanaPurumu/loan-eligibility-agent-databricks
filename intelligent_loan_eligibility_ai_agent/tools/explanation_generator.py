@@ -1,8 +1,8 @@
 import json
 import logging
-import requests
 from typing import Any, Dict, List
 from config import settings
+from tools.custom_llm import CustomDatabricksChat
 from langchain_core.messages import SystemMessage, HumanMessage
 
 logger = logging.getLogger(__name__)
@@ -55,23 +55,13 @@ def generate_explanation(
             if not host or not token or not endpoint:
                 raise ValueError("Databricks Model Serving is unconfigured. Missing host, token, or endpoint.")
             
-            url = f"{host.rstrip('/')}/serving-endpoints/{endpoint}/invocations"
-            headers = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": user_prompt}
-                ],
-                "temperature": 0.2,
-                "max_tokens": 512
-            }
-            res = requests.post(url, json=payload, headers=headers, timeout=60)
-            res.raise_for_status()
-            choices = res.json().get("choices", [])
-            explanation = choices[0].get("message", {}).get("content", "").strip() if choices else ""
+            llm = CustomDatabricksChat(
+                host=host,
+                token=token,
+                endpoint=endpoint,
+                temperature=0.2,
+                max_tokens=512
+            )
             
         else:
             from langchain_ollama import ChatOllama
@@ -80,13 +70,13 @@ def generate_explanation(
                 base_url=settings.OLLAMA_BASE_URL,
                 temperature=0.2
             )
-            from langchain_core.messages import SystemMessage, HumanMessage
-            messages = [
-                SystemMessage(content=SYSTEM_PROMPT),
-                HumanMessage(content=user_prompt)
-            ]
-            response_msg = llm.invoke(messages)
-            explanation = response_msg.content.strip()
+            
+        messages = [
+            SystemMessage(content=SYSTEM_PROMPT),
+            HumanMessage(content=user_prompt)
+        ]
+        response_msg = llm.invoke(messages)
+        explanation = response_msg.content.strip()
             
     except Exception as e:
         logger.error(f"LLM Reasoning Generation failed: {e}")
