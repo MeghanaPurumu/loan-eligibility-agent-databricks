@@ -231,7 +231,6 @@ def call_followup_agent(query: str, payload: Dict[str, Any], result: Dict[str, A
             
     except Exception as e:
         logger.error(f"LLM follow-up failed: {e}")
-        st.error(f"LLM Connection Failed: {e}")
         response = ""
         
     if not response:
