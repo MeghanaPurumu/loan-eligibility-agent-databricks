@@ -19,7 +19,7 @@ DATA_PATH = BASE_DIR / "data" / "mock_customers.csv"
 STYLE_PATH = BASE_DIR / "styles.css"
 
 # Configuration
-st.set_page_config(page_title=APP_TITLE, page_icon="🏦", layout="wide")
+st.set_page_config(page_title=APP_TITLE, layout="wide")
 
 def load_styles():
     """Loads external CSS for the application."""

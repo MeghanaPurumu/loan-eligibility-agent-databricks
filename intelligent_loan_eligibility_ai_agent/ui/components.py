@@ -12,11 +12,10 @@ def render_hero(title):
         unsafe_allow_html=True,
     )
 
-def render_section_header(title, emoji=None):
-    """Renders a styled section title with an optional emoji."""
-    icon_span = f"<span>{emoji} </span>" if emoji else ""
+def render_section_header(title):
+    """Renders a styled section title."""
     st.markdown(
-        f'<div class="section-title">{icon_span}{title}</div>', 
+        f'<div class="section-title">{title}</div>', 
         unsafe_allow_html=True
     )
 

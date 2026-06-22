@@ -113,7 +113,7 @@ def render_dashboard():
     
     with col_left:
         ui.start_card()
-        st.subheader("📊 Loan Decision Distribution")
+        st.subheader("Loan Decision Distribution")
         decision_data = pd.DataFrame({
             "Decision": ["Eligible", "Conditionally Eligible", "Not Eligible"],
             "Count": [eligible_count, cond_count, not_eligible_count]
@@ -124,7 +124,7 @@ def render_dashboard():
         
     with col_right:
         ui.start_card()
-        st.subheader("📈 Credit Score vs Loan Decision")
+        st.subheader("Credit Score vs Loan Decision")
         # Create a scatter-like chart using credit score grouped by decision
         if not df.empty and df["credit_score"].sum() > 0:
             scatter_data = df[["credit_score", "decision"]].copy()
@@ -144,7 +144,7 @@ def render_dashboard():
     
     with col_left2:
         ui.start_card()
-        st.subheader("👔 Employment Type Risk Analysis")
+        st.subheader("Employment Type Risk Analysis")
         if not df.empty and df["employment_type"].nunique() > 0:
             emp_decision = df.groupby(["employment_type", "decision"]).size().reset_index(name="count")
             emp_pivot = emp_decision.pivot(index="employment_type", columns="decision", values="count").fillna(0)
@@ -156,7 +156,7 @@ def render_dashboard():
 
     with col_right2:
         ui.start_card()
-        st.subheader("⏱️ Pipeline Latency Distribution")
+        st.subheader("Pipeline Latency Distribution")
         if not df.empty and "latency" in df.columns:
             latency_data = df[["latency", "decision"]].copy()
             latency_pivot = latency_data.groupby("decision")["latency"].mean().reset_index()
@@ -171,7 +171,7 @@ def render_dashboard():
 
     # ── Guardrail Compliance Summary ─────────────────────────────────────
     ui.start_card()
-    st.subheader("🛡️ Guardrail Compliance Overview")
+    st.subheader("Guardrail Compliance Overview")
     g1, g2, g3 = st.columns(3)
     
     compliant = len(df[df["guardrail_status"] == "Compliant"])
@@ -181,7 +181,7 @@ def render_dashboard():
     with g1:
         st.markdown(
             f'<div style="text-align:center; padding:0.8rem; background:#2ecc7110; border-radius:10px;">'
-            f'<div style="font-size:2rem;">✅</div>'
+            f'<div style="font-size:2rem;">Compliant</div>'
             f'<div style="font-size:1.5rem; font-weight:700; color:#2ecc71;">{compliant}</div>'
             f'<div style="font-size:0.8rem; color:#aaa;">Compliant</div>'
             f'</div>', unsafe_allow_html=True
@@ -189,7 +189,7 @@ def render_dashboard():
     with g2:
         st.markdown(
             f'<div style="text-align:center; padding:0.8rem; background:#e74c3c10; border-radius:10px;">'
-            f'<div style="font-size:2rem;">🚫</div>'
+            f'<div style="font-size:2rem;">Blocked</div>'
             f'<div style="font-size:1.5rem; font-weight:700; color:#e74c3c;">{blocked}</div>'
             f'<div style="font-size:0.8rem; color:#aaa;">Blocked (Input)</div>'
             f'</div>', unsafe_allow_html=True
@@ -197,7 +197,7 @@ def render_dashboard():
     with g3:
         st.markdown(
             f'<div style="text-align:center; padding:0.8rem; background:#f39c1210; border-radius:10px;">'
-            f'<div style="font-size:2rem;">⚠️</div>'
+            f'<div style="font-size:2rem;">Sanitized</div>'
             f'<div style="font-size:1.5rem; font-weight:700; color:#f39c12;">{sanitized}</div>'
             f'<div style="font-size:0.8rem; color:#aaa;">Output Sanitized</div>'
             f'</div>', unsafe_allow_html=True
@@ -208,7 +208,7 @@ def render_dashboard():
 
     # ── Transaction Log Table ────────────────────────────────────────────
     ui.start_card()
-    st.subheader("📋 Recent Assessment Transactions")
+    st.subheader("Recent Assessment Transactions")
     display_cols = ["decision", "guardrail_status", "latency"]
     if "model_name" in df.columns:
         display_cols.append("model_name")

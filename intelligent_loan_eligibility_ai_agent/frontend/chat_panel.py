@@ -45,7 +45,7 @@ def _check_chat_input_guardrail(user_query: str) -> str | None:
     for pattern in BLOCKED_CHAT_PATTERNS:
         if re.search(pattern, query_lower):
             return (
-                "⚠️ **Input Guardrail Triggered**: Your message was flagged for attempting to "
+                "Input Guardrail Triggered: Your message was flagged for attempting to "
                 "override system policies. Please ask a legitimate question about your loan assessment."
             )
     return None
@@ -73,7 +73,7 @@ def render_chat_panel(result: Dict[str, Any], payload: Dict[str, Any]):
     Renders the assessment result and interactive chat panel on the right side.
     """
     ui.start_card()
-    ui.render_section_header("AI Loan Assessment Verdict", "🤖")
+    ui.render_section_header("AI Loan Assessment Verdict")
 
     if not result:
         st.info("Fill out the Customer Profile and click 'Launch Assessment' to run the evaluation.")
@@ -124,7 +124,7 @@ def render_chat_panel(result: Dict[str, Any], payload: Dict[str, Any]):
         if docs:
             st.markdown("##### The following verified documents must be submitted to proceed:")
             for d in docs:
-                st.markdown(f"- 📄 {d}")
+                st.markdown(f"- {d}")
         else:
             st.write("No document submission guidelines specified.")
 
@@ -134,24 +134,22 @@ def render_chat_panel(result: Dict[str, Any], payload: Dict[str, Any]):
 
     # ------------------ CONVERSATIONAL ASSISTANT ------------------
     ui.start_card()
-    ui.render_section_header("Conversational Follow-up", "💬")
+    ui.render_section_header("Conversational Follow-up")
     st.write("Review the assessment and ask follow-up questions (e.g. *'Why was I rejected?'* or *'What should I improve?'*):")
 
     if "chat_history" not in st.session_state:
         st.session_state["chat_history"] = []
 
     # Display chat transcripts
-    for message in st.session_state["chat_history"]:
         role = message["role"]
-        avatar = "👤" if role == "user" else "🤖"
-        with st.chat_message(role, avatar=avatar):
+        with st.chat_message(role):
             st.markdown(message["content"])
 
     # Chat Input Box
     if user_query := st.chat_input("Type your question here..."):
         # Append User input
         st.session_state["chat_history"].append({"role": "user", "content": user_query})
-        with st.chat_message("user", avatar="👤"):
+        with st.chat_message("user"):
             st.markdown(user_query)
 
         # ── Input Guardrail Check ────────────────────────────────────────
@@ -165,9 +163,8 @@ def render_chat_panel(result: Dict[str, Any], payload: Dict[str, Any]):
         
         # Append Assistant response
         st.session_state["chat_history"].append({"role": "assistant", "content": ai_response})
-        with st.chat_message("assistant", avatar="🤖"):
+        with st.chat_message("assistant"):
             st.markdown(ai_response)
-        st.rerun()
 
     ui.end_card()
 
@@ -221,6 +218,7 @@ def call_followup_agent(query: str, payload: Dict[str, Any], result: Dict[str, A
         response = response_msg.content.strip()
     except Exception as e:
         logger.error(f"LLM follow-up failed: {e}")
+        st.error(f"LLM Connection Failed: {e}")
         response = ""
         
     if not response:
@@ -236,6 +234,11 @@ def call_followup_agent(query: str, payload: Dict[str, Any], result: Dict[str, A
 def _build_rule_based_response(query: str, payload: Dict[str, Any], result: Dict[str, Any]) -> str:
     """Generates a detailed rule-based response when the LLM is unreachable."""
     query_lower = query.lower()
+    
+    # Simple Greeting Handling
+    if query_lower in ["hi", "hello", "hey", "greetings"]:
+        return "Hello! I am your AI Loan Assessment assistant. How can I help you understand your loan decision today?"
+
     verdict = result.get('decision', 'Not Eligible')
     factors = result.get('evaluation_factors', [])
     
@@ -288,25 +291,25 @@ def _build_rule_based_response(query: str, payload: Dict[str, Any], result: Dict
         response = (f"Your assessment resulted in **{verdict}**. Here are the contributing factors:\n\n"
                     + "\n".join(f"- {r}" for r in reasons))
 
-    elif any(w in query_lower for w in ["document", "required", "submit", "proof", "paperwork"]):
+    elif "documents" in query_lower or "submit" in query_lower:
         if verdict == "Eligible":
-            response = ("For your **Eligible** status, please submit:\n\n"
-                       "- 📄 Government Issued ID (PAN/Aadhaar)\n"
-                       "- 📄 Proof of Address\n"
-                       "- 📄 Last 3 Months Salary Slips\n"
-                       "- 📄 Bank Statements (Last 6 Months)")
+            response = ("To finalize your loan, please submit:\n"
+                       "- Government Issued ID (PAN/Aadhaar)\n"
+                       "- Proof of Address\n"
+                       "- Last 3 Months Salary Slips\n"
+                       "- Bank Statements (Last 6 Months)")
         elif verdict == "Conditionally Eligible":
-            response = ("For your **Conditionally Eligible** status, additional documentation is required:\n\n"
-                       "- 📄 Government Issued ID (PAN/Aadhaar)\n"
-                       "- 📄 Proof of Address\n"
-                       "- 📄 Last 6 Months Salary Slips or Form 16\n"
-                       "- 📄 Bank Statements (Last 6 Months)\n"
-                       "- 📄 Proof of Additional Assets or Guarantor Details")
+            response = ("To proceed with conditional review, please submit:\n"
+                       "- Government Issued ID (PAN/Aadhaar)\n"
+                       "- Proof of Address\n"
+                       "- Last 6 Months Salary Slips or Form 16\n"
+                       "- Bank Statements (Last 6 Months)\n"
+                       "- Proof of Additional Assets or Guarantor Details")
         else:
-            response = ("For re-evaluation, you would need to submit:\n\n"
-                       "- 📄 Government Issued ID (PAN/Aadhaar)\n"
-                       "- 📄 Proof of Income\n"
-                       "- 📄 Credit Score Rectification Statement")
+            response = ("If you plan to re-apply, you will typically need:\n"
+                       "- Government Issued ID (PAN/Aadhaar)\n"
+                       "- Proof of Income\n"
+                       "- Credit Score Rectification Statement")
 
     elif any(w in query_lower for w in ["score", "rating", "points", "breakdown"]):
         response = (f"Your assessment breakdown:\n\n"
@@ -324,13 +327,10 @@ def _build_rule_based_response(query: str, payload: Dict[str, Any], result: Dict
                    f"employment type ({employment}), and debt-to-income ratio ({dti}%).")
 
     else:
-        response = (f"Your loan assessment resulted in **{verdict}** with **{result.get('confidence', 'N/A')}** confidence.\n\n"
-                   f"**Profile Summary**: Income ₹{income:,} | Credit Score {credit_score} | "
-                   f"Employment: {employment} | DTI: {dti}%\n\n"
-                   f"Please ask specific questions like *'Why was I rejected?'*, *'How can I improve?'*, "
-                   f"or *'What documents do I need?'* for detailed guidance.")
+        response = (
+            f"I am currently experiencing issues connecting to my local language model. "
+            f"To answer your question directly based on the deterministic engine:\n\n"
+            f"Your application was marked as **{verdict}**. The primary factors for this decision were:\n{', '.join(factors)}"
+        )
 
     return response
-
-
-

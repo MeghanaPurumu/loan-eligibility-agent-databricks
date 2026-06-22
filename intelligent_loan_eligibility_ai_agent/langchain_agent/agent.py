@@ -366,7 +366,7 @@ class LoanEligibilityAgent:
             return {
                 "needs_more_info": True,
                 "message": (
-                    f"⚠️ Please correct the following before we can proceed:\n\n"
+                    f"Please correct the following before we can proceed:\n\n"
                     f"{error_lines}\n\n"
                     "Once these are fixed, click **Launch Assessment** again."
                 ),

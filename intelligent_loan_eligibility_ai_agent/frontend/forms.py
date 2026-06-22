@@ -12,7 +12,7 @@ def render_customer_form(rules):
         (bool, dict): submitted state and user payload.
     """
     ui.start_card()
-    ui.render_section_header("Customer Profile", "👤")
+    ui.render_section_header("Customer Profile")
 
     # --- Session State Defaults ---
     fields = [
@@ -71,7 +71,7 @@ def render_customer_form(rules):
 
     # Renders the Bank Policy rules box inside the left pane
     ui.start_card()
-    ui.render_section_header("Bank Underwriting Guidelines", "📋")
+    ui.render_section_header("Bank Underwriting Guidelines")
     m1, m2 = st.columns(2)
     with m1:
         st.metric("Min Age", f"{rules['thresholds']['min_age']} yrs")
