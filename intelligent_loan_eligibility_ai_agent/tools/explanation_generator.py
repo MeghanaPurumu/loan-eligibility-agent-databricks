@@ -1,4 +1,6 @@
+import json
 import logging
+import requests
 from typing import Any, Dict, List
 from config import settings
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -46,18 +48,31 @@ def generate_explanation(
 
     try:
         if settings.MODEL_PROVIDER.lower() == "databricks":
-            try:
-                from langchain_databricks import ChatDatabricks
-            except ImportError:
-                try:
-                    from langchain_community.chat_models.databricks import ChatDatabricks
-                except ImportError:
-                    from langchain_community.chat_models import ChatDatabricks
-            llm = ChatDatabricks(
-                endpoint=settings.DATABRICKS_SERVING_ENDPOINT,
-                temperature=0.2,
-                max_tokens=512
-            )
+            host = settings.DATABRICKS_HOST
+            token = settings.DATABRICKS_TOKEN
+            endpoint = settings.DATABRICKS_SERVING_ENDPOINT
+            
+            if not host or not token or not endpoint:
+                raise ValueError("Databricks Model Serving is unconfigured. Missing host, token, or endpoint.")
+            
+            url = f"{host.rstrip('/')}/serving-endpoints/{endpoint}/invocations"
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "temperature": 0.2,
+                "max_tokens": 512
+            }
+            res = requests.post(url, json=payload, headers=headers, timeout=60)
+            res.raise_for_status()
+            choices = res.json().get("choices", [])
+            explanation = choices[0].get("message", {}).get("content", "").strip() if choices else ""
+            
         else:
             from langchain_ollama import ChatOllama
             llm = ChatOllama(
@@ -65,13 +80,14 @@ def generate_explanation(
                 base_url=settings.OLLAMA_BASE_URL,
                 temperature=0.2
             )
+            from langchain_core.messages import SystemMessage, HumanMessage
+            messages = [
+                SystemMessage(content=SYSTEM_PROMPT),
+                HumanMessage(content=user_prompt)
+            ]
+            response_msg = llm.invoke(messages)
+            explanation = response_msg.content.strip()
             
-        messages = [
-            SystemMessage(content=SYSTEM_PROMPT),
-            HumanMessage(content=user_prompt)
-        ]
-        response_msg = llm.invoke(messages)
-        explanation = response_msg.content.strip()
     except Exception as e:
         logger.error(f"LLM Reasoning Generation failed: {e}")
         explanation = ""
