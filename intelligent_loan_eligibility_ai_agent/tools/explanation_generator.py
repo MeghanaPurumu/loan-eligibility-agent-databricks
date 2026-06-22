@@ -46,7 +46,13 @@ def generate_explanation(
 
     try:
         if settings.MODEL_PROVIDER.lower() == "databricks":
-            from langchain_community.chat_models.databricks import ChatDatabricks
+            try:
+                from langchain_databricks import ChatDatabricks
+            except ImportError:
+                try:
+                    from langchain_community.chat_models.databricks import ChatDatabricks
+                except ImportError:
+                    from langchain_community.chat_models import ChatDatabricks
             llm = ChatDatabricks(
                 endpoint=settings.DATABRICKS_SERVING_ENDPOINT,
                 temperature=0.2,
