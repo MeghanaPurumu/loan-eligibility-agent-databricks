@@ -1,12 +1,71 @@
 import streamlit as st
 import requests
 import json
+import re
 import logging
 from typing import Any, Dict
 from config import settings
 import ui.components as ui
 
 logger = logging.getLogger(__name__)
+
+# ── Guardrail patterns for conversational follow-up ─────────────────────────
+BLOCKED_CHAT_PATTERNS = [
+    r"ignore.*rules",
+    r"ignore.*policy",
+    r"bypass.*checks",
+    r"approve.*anyway",
+    r"override.*system",
+    r"ignore all instructions",
+    r"you are now",
+    r"system.*prompt",
+    r"set.*decision",
+]
+
+GUARANTEE_PATTERNS = [
+    r"definitely.*approved",
+    r"guarantee.*approval",
+    r"guaranteed.*loan",
+    r"will.*definitely.*get",
+    r"absolutely.*approved",
+]
+
+MANDATORY_DISCLAIMER_SHORT = (
+    "\n\n*This is an AI-generated response for decision-support only. "
+    "It does not constitute a final credit approval.*"
+)
+
+
+def _check_chat_input_guardrail(user_query: str) -> str | None:
+    """Returns a blocked message if the user query contains prompt injection attempts."""
+    if not settings.ENABLE_GUARDRAILS:
+        return None
+    query_lower = user_query.lower()
+    for pattern in BLOCKED_CHAT_PATTERNS:
+        if re.search(pattern, query_lower):
+            return (
+                "⚠️ **Input Guardrail Triggered**: Your message was flagged for attempting to "
+                "override system policies. Please ask a legitimate question about your loan assessment."
+            )
+    return None
+
+
+def _sanitize_llm_output(response: str) -> str:
+    """Output guardrail: softens guarantee language and appends disclaimer."""
+    if not settings.ENABLE_GUARDRAILS:
+        return response
+    for pattern in GUARANTEE_PATTERNS:
+        if re.search(pattern, response, re.IGNORECASE):
+            response = re.sub(
+                pattern,
+                "subject to credit verification and formal approval",
+                response,
+                flags=re.IGNORECASE,
+            )
+    if "does not constitute" not in response.lower():
+        response += MANDATORY_DISCLAIMER_SHORT
+    return response
+
 
 def render_chat_panel(result: Dict[str, Any], payload: Dict[str, Any]):
     """
@@ -94,9 +153,14 @@ def render_chat_panel(result: Dict[str, Any], payload: Dict[str, Any]):
         with st.chat_message("user", avatar="👤"):
             st.markdown(user_query)
 
-        # Generate Assistant response
-        with st.spinner("Analyzing credit context..."):
-            ai_response = call_followup_agent(user_query, payload, result)
+        # ── Input Guardrail Check ────────────────────────────────────────
+        blocked_msg = _check_chat_input_guardrail(user_query)
+        if blocked_msg:
+            ai_response = blocked_msg
+        else:
+            # Generate Assistant response
+            with st.spinner("Analyzing credit context..."):
+                ai_response = call_followup_agent(user_query, payload, result)
         
         # Append Assistant response
         st.session_state["chat_history"].append({"role": "assistant", "content": ai_response})
@@ -118,9 +182,11 @@ def call_followup_agent(query: str, payload: Dict[str, Any], result: Dict[str, A
     Orchestration factors: {result.get('evaluation_factors')}
 
     Rules:
-    - Never guarantee loan approvals.
+    - Never guarantee loan approvals. Use terms like "subject to verification" or "preliminary assessment".
     - Be polite, professional, and clear.
     - Use data and rule constraints in explanations.
+    - Always mention specific numbers from the customer data when explaining decisions.
+    - If the customer asks about improving eligibility, give actionable advice.
     """
 
     user_prompt = f"""
@@ -130,6 +196,7 @@ def call_followup_agent(query: str, payload: Dict[str, Any], result: Dict[str, A
     Customer Question: {query}
     """
 
+    response = ""
     if settings.MODEL_PROVIDER.lower() == "databricks":
         response = call_databricks(system_prompt, user_prompt)
     else:
@@ -137,21 +204,113 @@ def call_followup_agent(query: str, payload: Dict[str, Any], result: Dict[str, A
         
     if not response:
         # Dynamic Rule-Based Fallback when LLM is unreachable
-        query_lower = query.lower()
-        verdict = result.get('decision', 'Not Eligible')
-        factors = result.get('evaluation_factors', [])
-        
-        if any(w in query_lower for w in ["improve", "better", "fix", "change"]):
-            response = (f"**[Rule-Based Fallback]** To improve your eligibility, please focus on optimizing your key parameters: "
-                        f"{' | '.join(factors)}. Consider increasing your income, improving your credit score, or reducing existing liabilities to lower your Debt-To-Income (DTI) ratio.")
-        elif any(w in query_lower for w in ["why", "reason", "reject", "decline"]):
-            response = (f"**[Rule-Based Fallback]** Your assessment resulted in '{verdict}'. The decision was primarily influenced by your parameters: "
-                        f"{' | '.join(factors)}. Please review the AI Underwriter Report tab for the detailed scoring breakdown.")
-        else:
-            response = (f"**[Rule-Based Fallback]** Your assessment verdict is {verdict}. "
-                        f"I am currently operating offline. Please review the AI Underwriter Report tab for detailed policy flags.")
+        response = _build_rule_based_response(query, payload, result)
+
+    # ── Output Guardrail ─────────────────────────────────────────────────
+    response = _sanitize_llm_output(response)
 
     return response
+
+
+def _build_rule_based_response(query: str, payload: Dict[str, Any], result: Dict[str, Any]) -> str:
+    """Generates a detailed rule-based response when the LLM is unreachable."""
+    query_lower = query.lower()
+    verdict = result.get('decision', 'Not Eligible')
+    factors = result.get('evaluation_factors', [])
+    
+    # Extract customer data for personalized responses
+    income = payload.get('monthly_income', 0)
+    credit_score = payload.get('credit_score', 0)
+    loan_amount = payload.get('loan_amount_requested', 0)
+    existing_emi = payload.get('monthly_loan_payment', 0)
+    employment = payload.get('employment_type', 'Unknown')
+    dti = round((existing_emi / income * 100), 1) if income else 0
+
+    if any(w in query_lower for w in ["improve", "better", "fix", "change", "increase", "how can", "what should"]):
+        tips = []
+        if credit_score < 750:
+            tips.append(f"**Improve Credit Score**: Your current score is {credit_score}. A score of 750+ qualifies for premium rates. Pay bills on time and reduce credit utilization.")
+        if income < 50000:
+            tips.append(f"**Increase Income**: Your monthly income of ₹{income:,} is below the preferred threshold of ₹50,000. Consider additional income sources or wait for a salary increment.")
+        if dti > 25:
+            tips.append(f"**Reduce Existing Debt**: Your DTI ratio is {dti}%. Aim for below 25% by clearing existing liabilities (current EMI: ₹{existing_emi:,}).")
+        if loan_amount > income * 15:
+            tips.append(f"**Lower Loan Amount**: ₹{loan_amount:,} is high relative to your income. Consider requesting a smaller amount.")
+        if employment in ["Student", "Unemployed"]:
+            tips.append(f"**Employment Status**: '{employment}' is categorized as high-risk. Salaried employment significantly improves eligibility.")
+        if not tips:
+            tips.append("Your profile is already competitive. Maintain your credit score and income stability.")
+        
+        response = f"Based on your profile analysis, here are actionable steps to improve your eligibility:\n\n" + "\n\n".join(f"- {t}" for t in tips)
+
+    elif any(w in query_lower for w in ["why", "reason", "reject", "decline", "not eligible", "denied"]):
+        reasons = []
+        if credit_score < 600:
+            reasons.append(f"Credit score ({credit_score}) is below the minimum threshold of 600.")
+        elif credit_score < 750:
+            reasons.append(f"Credit score ({credit_score}) is acceptable but below the preferred 750+ threshold, which may have reduced your overall score.")
+        if income < 30000:
+            reasons.append(f"Monthly income (₹{income:,}) is below the minimum baseline of ₹30,000.")
+        elif income < 50000:
+            reasons.append(f"Monthly income (₹{income:,}) meets the conditional threshold but not the preferred ₹50,000 baseline.")
+        if dti > 40:
+            reasons.append(f"Debt-to-Income ratio ({dti}%) exceeds the maximum cap of 40%.")
+        elif dti > 25:
+            reasons.append(f"Debt-to-Income ratio ({dti}%) is above the preferred 25% threshold.")
+        if employment in ["Student", "Unemployed"]:
+            reasons.append(f"Employment type '{employment}' is classified as high-risk under bank policy.")
+        if loan_amount > income * 20:
+            reasons.append(f"Requested amount (₹{loan_amount:,}) exceeds the maximum 20x income multiple.")
+        if not reasons:
+            reasons.append("The combination of your profile factors resulted in a score below the eligibility threshold.")
+        
+        response = (f"Your assessment resulted in **{verdict}**. Here are the contributing factors:\n\n"
+                    + "\n".join(f"- {r}" for r in reasons))
+
+    elif any(w in query_lower for w in ["document", "required", "submit", "proof", "paperwork"]):
+        if verdict == "Eligible":
+            response = ("For your **Eligible** status, please submit:\n\n"
+                       "- 📄 Government Issued ID (PAN/Aadhaar)\n"
+                       "- 📄 Proof of Address\n"
+                       "- 📄 Last 3 Months Salary Slips\n"
+                       "- 📄 Bank Statements (Last 6 Months)")
+        elif verdict == "Conditionally Eligible":
+            response = ("For your **Conditionally Eligible** status, additional documentation is required:\n\n"
+                       "- 📄 Government Issued ID (PAN/Aadhaar)\n"
+                       "- 📄 Proof of Address\n"
+                       "- 📄 Last 6 Months Salary Slips or Form 16\n"
+                       "- 📄 Bank Statements (Last 6 Months)\n"
+                       "- 📄 Proof of Additional Assets or Guarantor Details")
+        else:
+            response = ("For re-evaluation, you would need to submit:\n\n"
+                       "- 📄 Government Issued ID (PAN/Aadhaar)\n"
+                       "- 📄 Proof of Income\n"
+                       "- 📄 Credit Score Rectification Statement")
+
+    elif any(w in query_lower for w in ["score", "rating", "points", "breakdown"]):
+        response = (f"Your assessment breakdown:\n\n"
+                   f"- **Decision**: {verdict}\n"
+                   f"- **Monthly Income**: ₹{income:,}\n"
+                   f"- **Credit Score**: {credit_score}\n"
+                   f"- **Employment**: {employment}\n"
+                   f"- **DTI Ratio**: {dti}%\n"
+                   f"- **Loan Requested**: ₹{loan_amount:,}\n\n"
+                   f"Key evaluation factors: {' | '.join(factors)}")
+
+    elif any(w in query_lower for w in ["eligible", "status", "result", "verdict", "decision"]):
+        response = (f"Your loan assessment verdict is **{verdict}** with **{result.get('confidence', 'N/A')}** confidence.\n\n"
+                   f"This decision was based on your income (₹{income:,}), credit score ({credit_score}), "
+                   f"employment type ({employment}), and debt-to-income ratio ({dti}%).")
+
+    else:
+        response = (f"Your loan assessment resulted in **{verdict}** with **{result.get('confidence', 'N/A')}** confidence.\n\n"
+                   f"**Profile Summary**: Income ₹{income:,} | Credit Score {credit_score} | "
+                   f"Employment: {employment} | DTI: {dti}%\n\n"
+                   f"Please ask specific questions like *'Why was I rejected?'*, *'How can I improve?'*, "
+                   f"or *'What documents do I need?'* for detailed guidance.")
+
+    return response
+
 
 def call_ollama(system: str, prompt: str) -> str:
     url = f"{settings.OLLAMA_BASE_URL}/api/chat"
@@ -185,6 +344,11 @@ def call_databricks(system: str, prompt: str) -> str:
         logger.warning("Databricks Model Serving is unconfigured.")
         return ""
 
+    # Check if token is an unresolved env var reference
+    if token.startswith("${") or token == "":
+        logger.warning(f"Databricks token is not resolved: '{token[:20]}...'. Set DATABRICKS_TOKEN env var.")
+        return ""
+
     url = f"{host.rstrip('/')}/serving-endpoints/{endpoint}/invocations"
     headers = {
         "Authorization": f"Bearer {token}",
@@ -196,15 +360,15 @@ def call_databricks(system: str, prompt: str) -> str:
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.2,
-        "max_tokens": 300
+        "max_tokens": 500
     }
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=12)
+        response = requests.post(url, json=payload, headers=headers, timeout=60)
         response.raise_for_status()
         choices = response.json().get("choices", [])
         if choices:
             return choices[0].get("message", {}).get("content", "").strip()
-        return "No serving response received."
+        return ""
     except Exception as e:
         logger.error(f"Databricks follow-up failed: {e}")
         return ""

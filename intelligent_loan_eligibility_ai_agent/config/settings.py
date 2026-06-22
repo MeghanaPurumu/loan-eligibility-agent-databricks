@@ -6,6 +6,15 @@ BASE_DIR = Path(__file__).parent.parent
 # Default mode is local development unless specified
 MODE = os.getenv("MODE", "local").strip().lower()
 
+import re
+
+def _resolve_env_vars(val: str) -> str:
+    """Resolve ${VAR_NAME} references in env file values."""
+    def _replace(match):
+        var_name = match.group(1)
+        return os.environ.get(var_name, match.group(0))
+    return re.sub(r'\$\{(\w+)\}', _replace, val)
+
 def load_env_file(filepath: Path):
     if not filepath.exists():
         return
@@ -17,8 +26,11 @@ def load_env_file(filepath: Path):
             if "=" in line:
                 key, val = line.split("=", 1)
                 key = key.strip()
+                val = val.strip()
+                # Resolve ${VAR} references to actual environment variables
+                val = _resolve_env_vars(val)
                 if key not in os.environ:
-                    os.environ[key] = val.strip()
+                    os.environ[key] = val
 
 # Load env variables based on environment
 if MODE == "prod":

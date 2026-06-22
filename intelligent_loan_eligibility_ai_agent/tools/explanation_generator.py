@@ -89,6 +89,11 @@ def call_databricks_serving(prompt: str) -> str:
         logger.warning("Databricks Model Serving is not fully configured.")
         return ""
 
+    # Check if token is an unresolved env var reference
+    if token.startswith("${") or token == "":
+        logger.warning(f"Databricks token is not resolved. Set DATABRICKS_TOKEN env var.")
+        return ""
+
     url = f"{host.rstrip('/')}/serving-endpoints/{endpoint}/invocations"
     headers = {
         "Authorization": f"Bearer {token}",
@@ -103,7 +108,7 @@ def call_databricks_serving(prompt: str) -> str:
         "max_tokens": 512
     }
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=12)
+        response = requests.post(url, json=payload, headers=headers, timeout=60)
         response.raise_for_status()
         # Databricks endpoint response parses choices[0].message.content
         choices = response.json().get("choices", [])
