@@ -1,7 +1,7 @@
 import logging
-import requests
 from typing import Any, Dict, List
 from config import settings
+from langchain_core.messages import SystemMessage, HumanMessage
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ def generate_explanation(
     retrieved_policy: str
 ) -> str:
     """
-    Generates natural language reasoning report using Ollama or Databricks Model Serving.
+    Generates natural language reasoning report using Langchain LLM abstractions.
     Falls back to a deterministic generator if model invocation fails.
     """
     user_prompt = f"""
@@ -44,80 +44,37 @@ def generate_explanation(
     Please write a clean credit underwriter evaluation report.
     """
 
-    if settings.MODEL_PROVIDER.lower() == "databricks":
-        explanation = call_databricks_serving(user_prompt)
-    else:
-        explanation = call_ollama(user_prompt)
+    try:
+        if settings.MODEL_PROVIDER.lower() == "databricks":
+            from langchain_community.chat_models import ChatDatabricks
+            llm = ChatDatabricks(
+                endpoint=settings.DATABRICKS_SERVING_ENDPOINT,
+                temperature=0.2,
+                max_tokens=512
+            )
+        else:
+            from langchain_ollama import ChatOllama
+            llm = ChatOllama(
+                model=settings.OLLAMA_MODEL,
+                base_url=settings.OLLAMA_BASE_URL,
+                temperature=0.2
+            )
+            
+        messages = [
+            SystemMessage(content=SYSTEM_PROMPT),
+            HumanMessage(content=user_prompt)
+        ]
+        response_msg = llm.invoke(messages)
+        explanation = response_msg.content.strip()
+    except Exception as e:
+        logger.error(f"LLM Reasoning Generation failed: {e}")
+        explanation = ""
 
     if not explanation:
         logger.warning("LLM generation failed or returned empty. Using deterministic fallback report.")
         explanation = build_deterministic_report(customer_data, verdict, score, factors, reasons, retrieved_policy)
 
     return explanation
-
-def call_ollama(prompt: str) -> str:
-    """Invokes local Ollama chat API."""
-    url = f"{settings.OLLAMA_BASE_URL}/api/chat"
-    payload = {
-        "model": settings.OLLAMA_MODEL,
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt}
-        ],
-        "stream": False,
-        "options": {
-            "temperature": 0.1,
-            "num_predict": 350,
-            "num_ctx": 2048
-        }
-    }
-    try:
-        response = requests.post(url, json=payload, timeout=90)
-        response.raise_for_status()
-        return response.json().get("message", {}).get("content", "").strip()
-    except Exception as e:
-        logger.warning(f"Ollama call failed: {e}")
-        return ""
-
-def call_databricks_serving(prompt: str) -> str:
-    """Invokes Databricks Model Serving REST API endpoint."""
-    host = settings.DATABRICKS_HOST
-    token = settings.DATABRICKS_TOKEN
-    endpoint = settings.DATABRICKS_SERVING_ENDPOINT
-
-    if not host or not token or not endpoint:
-        logger.warning("Databricks Model Serving is not fully configured.")
-        return ""
-
-    # Check if token is an unresolved env var reference
-    if token.startswith("${") or token == "":
-        logger.warning(f"Databricks token is not resolved. Set DATABRICKS_TOKEN env var.")
-        return ""
-
-    url = f"{host.rstrip('/')}/serving-endpoints/{endpoint}/invocations"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.1,
-        "max_tokens": 512
-    }
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=60)
-        response.raise_for_status()
-        # Databricks endpoint response parses choices[0].message.content
-        choices = response.json().get("choices", [])
-        if choices:
-            return choices[0].get("message", {}).get("content", "").strip()
-        return ""
-    except Exception as e:
-        logger.error(f"Databricks Model Serving failed: {e}")
-        return ""
 
 def build_deterministic_report(
     customer_data: Dict[str, Any],

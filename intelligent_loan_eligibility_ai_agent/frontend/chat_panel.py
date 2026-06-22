@@ -1,11 +1,12 @@
 import streamlit as st
-import requests
 import json
 import re
 import logging
 from typing import Any, Dict
 from config import settings
 import ui.components as ui
+
+from langchain_core.messages import SystemMessage, HumanMessage
 
 logger = logging.getLogger(__name__)
 
@@ -196,11 +197,31 @@ def call_followup_agent(query: str, payload: Dict[str, Any], result: Dict[str, A
     Customer Question: {query}
     """
 
-    response = ""
-    if settings.MODEL_PROVIDER.lower() == "databricks":
-        response = call_databricks(system_prompt, user_prompt)
-    else:
-        response = call_ollama(system_prompt, user_prompt)
+    try:
+        if settings.MODEL_PROVIDER.lower() == "databricks":
+            from langchain_community.chat_models import ChatDatabricks
+            llm = ChatDatabricks(
+                endpoint=settings.DATABRICKS_SERVING_ENDPOINT,
+                temperature=0.2,
+                max_tokens=500
+            )
+        else:
+            from langchain_ollama import ChatOllama
+            llm = ChatOllama(
+                model=settings.OLLAMA_MODEL,
+                base_url=settings.OLLAMA_BASE_URL,
+                temperature=0.2
+            )
+            
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_prompt)
+        ]
+        response_msg = llm.invoke(messages)
+        response = response_msg.content.strip()
+    except Exception as e:
+        logger.error(f"LLM follow-up failed: {e}")
+        response = ""
         
     if not response:
         # Dynamic Rule-Based Fallback when LLM is unreachable
@@ -312,63 +333,4 @@ def _build_rule_based_response(query: str, payload: Dict[str, Any], result: Dict
     return response
 
 
-def call_ollama(system: str, prompt: str) -> str:
-    url = f"{settings.OLLAMA_BASE_URL}/api/chat"
-    payload = {
-        "model": settings.OLLAMA_MODEL,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": prompt}
-        ],
-        "stream": False,
-        "options": {
-            "temperature": 0.2,
-            "num_predict": 250,
-            "num_ctx": 2048
-        }
-    }
-    try:
-        response = requests.post(url, json=payload, timeout=90)
-        response.raise_for_status()
-        return response.json().get("message", {}).get("content", "").strip()
-    except Exception as e:
-        logger.warning(f"Ollama follow-up failed: {e}")
-        return ""
 
-def call_databricks(system: str, prompt: str) -> str:
-    host = settings.DATABRICKS_HOST
-    token = settings.DATABRICKS_TOKEN
-    endpoint = settings.DATABRICKS_SERVING_ENDPOINT
-
-    if not host or not token or not endpoint:
-        logger.warning("Databricks Model Serving is unconfigured.")
-        return ""
-
-    # Check if token is an unresolved env var reference
-    if token.startswith("${") or token == "":
-        logger.warning(f"Databricks token is not resolved: '{token[:20]}...'. Set DATABRICKS_TOKEN env var.")
-        return ""
-
-    url = f"{host.rstrip('/')}/serving-endpoints/{endpoint}/invocations"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.2,
-        "max_tokens": 500
-    }
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=60)
-        response.raise_for_status()
-        choices = response.json().get("choices", [])
-        if choices:
-            return choices[0].get("message", {}).get("content", "").strip()
-        return ""
-    except Exception as e:
-        logger.error(f"Databricks follow-up failed: {e}")
-        return ""
