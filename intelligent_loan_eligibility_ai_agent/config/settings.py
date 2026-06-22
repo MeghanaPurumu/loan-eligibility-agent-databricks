@@ -44,14 +44,16 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3:latest")
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text:latest")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
-# Reconstruct obfuscated token if parts exist
-if "DATABRICKS_TOKEN_P1" in os.environ:
-    os.environ["DATABRICKS_TOKEN"] = (
-        os.getenv("DATABRICKS_TOKEN_P1", "") +
-        os.getenv("DATABRICKS_TOKEN_P2", "") +
-        os.getenv("DATABRICKS_TOKEN_P3", "") +
-        os.getenv("DATABRICKS_TOKEN_P4", "")
-    )
+# Reconstruct obfuscated token if parts exist and DATABRICKS_TOKEN is not already in environment
+if not os.environ.get("DATABRICKS_TOKEN") or os.environ.get("DATABRICKS_TOKEN") == "dapi_placeholder_token":
+    if "DATABRICKS_TOKEN_P1" in os.environ:
+        os.environ["DATABRICKS_TOKEN"] = (
+            os.getenv("DATABRICKS_TOKEN_P1", "") +
+            os.getenv("DATABRICKS_TOKEN_P2", "") +
+            os.getenv("DATABRICKS_TOKEN_P3", "") +
+            os.getenv("DATABRICKS_TOKEN_P4", "")
+        )
+
 
 DATABRICKS_HOST = os.getenv("DATABRICKS_HOST", "")
 DATABRICKS_TOKEN = os.getenv("DATABRICKS_TOKEN", "")

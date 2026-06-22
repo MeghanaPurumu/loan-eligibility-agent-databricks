@@ -143,6 +143,7 @@ def render_chat_panel(result: Dict[str, Any], payload: Dict[str, Any]):
         st.session_state["chat_history"] = []
 
     # Display chat transcripts
+    for message in st.session_state["chat_history"]:
         role = message["role"]
         with st.chat_message(role):
             st.markdown(message["content"])

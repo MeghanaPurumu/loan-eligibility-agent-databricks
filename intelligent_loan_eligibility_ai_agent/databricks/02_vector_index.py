@@ -95,9 +95,9 @@ if IN_DATABRICKS:
         df_chunks = spark.createDataFrame(rows, schema=schema_def)  # type: ignore[union-attr]
         df_chunks.write.format("delta").mode("overwrite").saveAsTable(source_table)
         spark.sql(f"ALTER TABLE {source_table} SET TBLPROPERTIES (delta.enableChangeDataFeed = true)")  # type: ignore[union-attr]
-        print(f"✅ Created '{source_table}' with {df_chunks.count()} chunks.")
+        print(f" Created '{source_table}' with {df_chunks.count()} chunks.")
     else:
-        print(f"✅ Source table '{source_table}' already exists.")
+        print(f" Source table '{source_table}' already exists.")
         # Ensure CDC is enabled for vector sync
         try:
             spark.sql(f"ALTER TABLE {source_table} SET TBLPROPERTIES (delta.enableChangeDataFeed = true)")  # type: ignore[union-attr]
