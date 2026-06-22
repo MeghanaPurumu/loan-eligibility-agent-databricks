@@ -196,7 +196,7 @@ def call_followup_agent(query: str, payload: Dict[str, Any], result: Dict[str, A
 
     try:
         if settings.MODEL_PROVIDER.lower() == "databricks":
-            from langchain_community.chat_models import ChatDatabricks
+            from langchain_community.chat_models.databricks import ChatDatabricks
             llm = ChatDatabricks(
                 endpoint=settings.DATABRICKS_SERVING_ENDPOINT,
                 temperature=0.2,
