@@ -131,9 +131,27 @@ def call_followup_agent(query: str, payload: Dict[str, Any], result: Dict[str, A
     """
 
     if settings.MODEL_PROVIDER.lower() == "databricks":
-        return call_databricks(system_prompt, user_prompt)
+        response = call_databricks(system_prompt, user_prompt)
     else:
-        return call_ollama(system_prompt, user_prompt)
+        response = call_ollama(system_prompt, user_prompt)
+        
+    if not response:
+        # Dynamic Rule-Based Fallback when LLM is unreachable
+        query_lower = query.lower()
+        verdict = result.get('decision', 'Not Eligible')
+        factors = result.get('evaluation_factors', [])
+        
+        if any(w in query_lower for w in ["improve", "better", "fix", "change"]):
+            response = (f"**[Rule-Based Fallback]** To improve your eligibility, please focus on optimizing your key parameters: "
+                        f"{' | '.join(factors)}. Consider increasing your income, improving your credit score, or reducing existing liabilities to lower your Debt-To-Income (DTI) ratio.")
+        elif any(w in query_lower for w in ["why", "reason", "reject", "decline"]):
+            response = (f"**[Rule-Based Fallback]** Your assessment resulted in '{verdict}'. The decision was primarily influenced by your parameters: "
+                        f"{' | '.join(factors)}. Please review the AI Underwriter Report tab for the detailed scoring breakdown.")
+        else:
+            response = (f"**[Rule-Based Fallback]** Your assessment verdict is {verdict}. "
+                        f"I am currently operating offline. Please review the AI Underwriter Report tab for detailed policy flags.")
+
+    return response
 
 def call_ollama(system: str, prompt: str) -> str:
     url = f"{settings.OLLAMA_BASE_URL}/api/chat"
@@ -156,7 +174,7 @@ def call_ollama(system: str, prompt: str) -> str:
         return response.json().get("message", {}).get("content", "").strip()
     except Exception as e:
         logger.warning(f"Ollama follow-up failed: {e}")
-        return "I am experiencing issues connecting to my local language model. However, based on your credit score and liabilities, please review the underwriting breakdown tab to see why your parameters triggered policy flags."
+        return ""
 
 def call_databricks(system: str, prompt: str) -> str:
     host = settings.DATABRICKS_HOST
@@ -164,7 +182,8 @@ def call_databricks(system: str, prompt: str) -> str:
     endpoint = settings.DATABRICKS_SERVING_ENDPOINT
 
     if not host or not token or not endpoint:
-        return "Databricks Model Serving is unconfigured. Please review backend parameters."
+        logger.warning("Databricks Model Serving is unconfigured.")
+        return ""
 
     url = f"{host.rstrip('/')}/serving-endpoints/{endpoint}/invocations"
     headers = {
@@ -188,4 +207,4 @@ def call_databricks(system: str, prompt: str) -> str:
         return "No serving response received."
     except Exception as e:
         logger.error(f"Databricks follow-up failed: {e}")
-        return "Failed to connect to production Databricks serving endpoint. Checking local policy conditions instead."
+        return ""
