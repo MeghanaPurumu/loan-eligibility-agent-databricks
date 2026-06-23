@@ -81,8 +81,13 @@ def vector_search_retrieve(query: str, limit: int = 3) -> Dict[str, Any]:
             "confidence": 0.0
         }
 
+    # Fix scheme if missing
+    clean_host = host.strip()
+    if not clean_host.startswith("http"):
+        clean_host = f"https://{clean_host}"
+
     # REST Endpoint for Vector Search Query
-    url = f"{host.rstrip('/')}/api/2.0/vector-search/indexes/{index_name}/query"
+    url = f"{clean_host.rstrip('/')}/api/2.0/vector-search/indexes/{index_name}/query"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
