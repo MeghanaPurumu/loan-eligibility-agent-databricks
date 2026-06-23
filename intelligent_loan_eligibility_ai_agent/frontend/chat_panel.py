@@ -126,9 +126,13 @@ def render_chat_panel(result: Dict[str, Any], payload: Dict[str, Any]):
     ui.render_disclaimer()
     ui.end_card()
 
-    # ------------------ CONVERSATIONAL ASSISTANT ------------------
-    ui.start_card()
-    ui.render_section_header("Conversational Follow-up")
+def render_conversational_chat(result: Dict[str, Any], payload: Dict[str, Any]):
+    """Renders the interactive follow-up chat on a separate page."""
+    if not result:
+        st.info("No active assessment to discuss. Please run an assessment first in the Assessment Workspace.")
+        return
+
+    st.markdown("### Conversational Follow-up")
     st.write("Review the assessment and ask follow-up questions (e.g. *'Why was I rejected?'* or *'What should I improve?'*):")
 
     if "chat_history" not in st.session_state:
@@ -140,7 +144,7 @@ def render_chat_panel(result: Dict[str, Any], payload: Dict[str, Any]):
         with st.chat_message(role):
             st.markdown(message["content"])
 
-    # Chat Input Box
+    # Chat Input Box - sticking to the bottom
     if user_query := st.chat_input("Type your question here..."):
         # Append User input
         st.session_state["chat_history"].append({"role": "user", "content": user_query})
@@ -160,8 +164,6 @@ def render_chat_panel(result: Dict[str, Any], payload: Dict[str, Any]):
         st.session_state["chat_history"].append({"role": "assistant", "content": ai_response})
         with st.chat_message("assistant"):
             st.markdown(ai_response)
-
-    ui.end_card()
 
 def call_followup_agent(query: str, payload: Dict[str, Any], result: Dict[str, Any]) -> str:
     """Helper to call LLM model with conversation context for follow-up questions."""

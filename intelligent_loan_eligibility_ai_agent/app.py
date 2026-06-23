@@ -8,7 +8,7 @@ import streamlit as st
 from config import settings
 from agents.loan_orchestrator import orchestrate_loan_assessment
 from frontend.forms import render_customer_form
-from frontend.chat_panel import render_chat_panel
+from frontend.chat_panel import render_chat_panel, render_conversational_chat
 from frontend.dashboard import render_dashboard
 import ui.components as ui
 
@@ -56,7 +56,7 @@ def main():
         # Page Selection Switch
         page = st.radio(
             "Go to Page:",
-            ["Assessment Workspace", "Analytics Dashboard"],
+            ["Assessment Workspace", "Conversational Follow-up", "Analytics Dashboard"],
             index=0
         )
         
@@ -101,6 +101,12 @@ def main():
     # Render Active Page
     if page == "Analytics Dashboard":
         render_dashboard()
+    elif page == "Conversational Follow-up":
+        ui.render_hero(f"{APP_TITLE} - Chat")
+        render_conversational_chat(
+            st.session_state.get("assessment_result"),
+            st.session_state.get("active_payload")
+        )
     else:
         # Assessment Workspace layout
         ui.render_hero(APP_TITLE)
