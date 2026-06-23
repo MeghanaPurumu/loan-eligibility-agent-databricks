@@ -122,7 +122,7 @@ result = orchestrate_loan_assessment(customer_payload)
 # ─────────────────────────────────────────────────────────────────
 # CELL 6: Display and Return Results
 # ─────────────────────────────────────────────────────────────────
-print("\n✅ Assessment Complete:")
+print("Assessment Complete:")
 print(json.dumps(result, indent=2))
 
 # Log key metrics to notebook output

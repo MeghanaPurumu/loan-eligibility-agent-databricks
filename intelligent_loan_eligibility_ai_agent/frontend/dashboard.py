@@ -78,20 +78,20 @@ def render_dashboard():
     m1, m2, m3, m4 = st.columns(4)
     with m1:
         st.markdown(
-            f'<div style="text-align:center; background: #2ecc7115; border: 1px solid #2ecc71; border-radius: 12px; padding: 1rem;">'
+            f'<div style="text-align:center; background: #ff6a0015; border: 1px solid #ff9a44; border-radius: 12px; padding: 1rem;">'
             f'<div style="font-size:0.8rem; color:#aaa;">Total Applications</div>'
-            f'<div style="font-size:2rem; font-weight:700; color:#2ecc71;">{total_apps}</div>'
+            f'<div style="font-size:2rem; font-weight:700; color:#ff6a00;">{total_apps}</div>'
             f'</div>', unsafe_allow_html=True
         )
     with m2:
         st.markdown(
-            f'<div style="text-align:center; background: #3498db15; border: 1px solid #3498db; border-radius: 12px; padding: 1rem;">'
+            f'<div style="text-align:center; background: #e67e2215; border: 1px solid #e67e22; border-radius: 12px; padding: 1rem;">'
             f'<div style="font-size:0.8rem; color:#aaa;">Approval Rate</div>'
-            f'<div style="font-size:2rem; font-weight:700; color:#3498db;">{eligible_pct}%</div>'
+            f'<div style="font-size:2rem; font-weight:700; color:#e67e22;">{eligible_pct}%</div>'
             f'</div>', unsafe_allow_html=True
         )
     with m3:
-        violation_color = "#e74c3c" if violations_count > 0 else "#2ecc71"
+        violation_color = "#c0392b" if violations_count > 0 else "#ff9a44"
         st.markdown(
             f'<div style="text-align:center; background: {violation_color}15; border: 1px solid {violation_color}; border-radius: 12px; padding: 1rem;">'
             f'<div style="font-size:0.8rem; color:#aaa;">Guardrail Violations</div>'
@@ -180,25 +180,22 @@ def render_dashboard():
     
     with g1:
         st.markdown(
-            f'<div style="text-align:center; padding:0.8rem; background:#2ecc7110; border-radius:10px;">'
-            f'<div style="font-size:2rem;">Compliant</div>'
-            f'<div style="font-size:1.5rem; font-weight:700; color:#2ecc71;">{compliant}</div>'
+            f'<div style="text-align:center; padding:0.8rem; background:#ff6a0010; border-radius:10px;">'
+            f'<div style="font-size:1.4rem; font-weight:700; color:#ff6a00;">{compliant}</div>'
             f'<div style="font-size:0.8rem; color:#aaa;">Compliant</div>'
             f'</div>', unsafe_allow_html=True
         )
     with g2:
         st.markdown(
-            f'<div style="text-align:center; padding:0.8rem; background:#e74c3c10; border-radius:10px;">'
-            f'<div style="font-size:2rem;">Blocked</div>'
-            f'<div style="font-size:1.5rem; font-weight:700; color:#e74c3c;">{blocked}</div>'
+            f'<div style="text-align:center; padding:0.8rem; background:#c0392b10; border-radius:10px;">'
+            f'<div style="font-size:1.4rem; font-weight:700; color:#c0392b;">{blocked}</div>'
             f'<div style="font-size:0.8rem; color:#aaa;">Blocked (Input)</div>'
             f'</div>', unsafe_allow_html=True
         )
     with g3:
         st.markdown(
-            f'<div style="text-align:center; padding:0.8rem; background:#f39c1210; border-radius:10px;">'
-            f'<div style="font-size:2rem;">Sanitized</div>'
-            f'<div style="font-size:1.5rem; font-weight:700; color:#f39c12;">{sanitized}</div>'
+            f'<div style="text-align:center; padding:0.8rem; background:#e67e2210; border-radius:10px;">'
+            f'<div style="font-size:1.4rem; font-weight:700; color:#e67e22;">{sanitized}</div>'
             f'<div style="font-size:0.8rem; color:#aaa;">Output Sanitized</div>'
             f'</div>', unsafe_allow_html=True
         )

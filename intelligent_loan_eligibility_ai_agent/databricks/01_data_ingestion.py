@@ -56,12 +56,12 @@ if IN_DATABRICKS:
                 for possible_src in [f"data/{filename}", f"intelligent_loan_eligibility_ai_agent/data/{filename}"]:
                     if os.path.exists(possible_src):
                         shutil.copy(possible_src, dest_file)
-                        print(f"✅ Copied {filename} from Repo ({possible_src}) to Volume ({dest_file})")
+                        print(f"Copied {filename} from Repo ({possible_src}) to Volume ({dest_file})")
                         break
                 else:
-                    print(f"⚠️ Could not locate source file {filename} in Repo directory to copy.")
+                    print(f"Warning: Could not locate source file {filename} in Repo directory to copy.")
             else:
-                print(f"✅ File '{filename}' already exists in Volume.")
+                print(f"File '{filename}' already exists in Volume.")
     except Exception as e:
         print(f"Unity Catalog volume setup or copy warning: {e}")
 
@@ -92,9 +92,9 @@ try:
         .option("overwriteSchema", "true")
         .saveAsTable(full_table_path)
     )
-    print("✅ Data ingestion completed successfully. Delta Table is synced.")
+    print("Data ingestion completed successfully. Delta Table is synced.")
 
 except Exception as e:
-    print(f"❌ Ingestion failed: {e}")
+    print(f"Ingestion failed: {e}")
     print("Ensure the CSV file is uploaded to the Databricks Volume before running this notebook.")
     raise

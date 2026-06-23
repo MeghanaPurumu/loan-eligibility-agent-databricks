@@ -92,7 +92,7 @@ def render_chat_panel(result: Dict[str, Any], payload: Dict[str, Any]):
     c1, c2 = st.columns(2)
     with c1:
         # Style verdict color based on decision
-        color = "#2ecc71" if decision == "Eligible" else "#f1c40f" if decision == "Conditionally Eligible" else "#e74c3c"
+        color = "#ff6a00" if decision == "Eligible" else "#e67e22" if decision == "Conditionally Eligible" else "#c0392b"
         st.markdown(
             f'<div style="text-align: center; background: {color}15; border: 1px solid {color}; border-radius: 12px; padding: 0.8rem 0.2rem;">'
             f'<div class="metric-label" style="font-size: 0.85rem;">Decision</div>'
@@ -102,9 +102,9 @@ def render_chat_panel(result: Dict[str, Any], payload: Dict[str, Any]):
         )
     with c2:
         st.markdown(
-            f'<div style="text-align: center; background: #3498db15; border: 1px solid #3498db; border-radius: 12px; padding: 0.8rem 0.2rem;">'
+            f'<div style="text-align: center; background: #ff6a0015; border: 1px solid #ff9a44; border-radius: 12px; padding: 0.8rem 0.2rem;">'
             f'<div class="metric-label" style="font-size: 0.85rem;">Confidence</div>'
-            f'<div class="metric-value" style="color: #3498db; font-size: 1.3rem;">{confidence}</div>'
+            f'<div class="metric-value" style="color: #ff6a00; font-size: 1.3rem;">{confidence}</div>'
             f'</div>',
             unsafe_allow_html=True
         )
