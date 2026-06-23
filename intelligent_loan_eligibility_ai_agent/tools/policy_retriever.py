@@ -117,12 +117,8 @@ def vector_search_retrieve(query: str, limit: int = 3) -> Dict[str, Any]:
             "confidence": confidence
         }
     except Exception as e:
-        logger.error(f"Databricks Vector Search failed: {e}")
-        return {
-            "policy": f"Databricks Vector Search retrieval failed. Error: {e}",
-            "documents": [],
-            "confidence": 0.0
-        }
+        logger.warning(f"Databricks Vector Search unavailable ({type(e).__name__}). Falling back to keyword search.")
+        return keyword_search_fallback(query)
 
 def keyword_search_fallback(query: str) -> Dict[str, Any]:
     """
