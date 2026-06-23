@@ -89,12 +89,12 @@ def render_chat_panel(result: Dict[str, Any], payload: Dict[str, Any]):
     reasoning = result.get("reasoning", "")
     docs = result.get("documents_required", [])
 
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     with c1:
         # Style verdict color based on decision
         color = "#2ecc71" if decision == "Eligible" else "#f1c40f" if decision == "Conditionally Eligible" else "#e74c3c"
         st.markdown(
-            f'<div style="text-align: center; background: {color}15; border: 1px solid {color}; border-radius: 12px; padding: 0.6rem 0.2rem;">'
+            f'<div style="text-align: center; background: {color}15; border: 1px solid {color}; border-radius: 12px; padding: 0.8rem 0.2rem;">'
             f'<div class="metric-label" style="font-size: 0.85rem;">Decision</div>'
             f'<div class="metric-value" style="color: {color}; font-size: 1.3rem;">{decision}</div>'
             f'</div>',
@@ -102,17 +102,9 @@ def render_chat_panel(result: Dict[str, Any], payload: Dict[str, Any]):
         )
     with c2:
         st.markdown(
-            f'<div style="text-align: center; background: #3498db15; border: 1px solid #3498db; border-radius: 12px; padding: 0.6rem 0.2rem;">'
+            f'<div style="text-align: center; background: #3498db15; border: 1px solid #3498db; border-radius: 12px; padding: 0.8rem 0.2rem;">'
             f'<div class="metric-label" style="font-size: 0.85rem;">Confidence</div>'
             f'<div class="metric-value" style="color: #3498db; font-size: 1.3rem;">{confidence}</div>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-    with c3:
-        st.markdown(
-            f'<div style="text-align: center; background: #e67e2215; border: 1px solid #e67e22; border-radius: 12px; padding: 0.6rem 0.2rem;">'
-            f'<div class="metric-label" style="font-size: 0.85rem;">Model Provider</div>'
-            f'<div class="metric-value" style="color: #e67e22; font-size: 1.3rem;">{settings.MODEL_PROVIDER.upper()}</div>'
             f'</div>',
             unsafe_allow_html=True
         )
