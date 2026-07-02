@@ -57,6 +57,10 @@ export default function AssessmentWorkspace({
           </h3>
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="input-group" style={{ gridColumn: 'span 2' }}>
+                <label>Full Name</label>
+                <input type="text" className="input" name="name" value={activePayload.name || ''} onChange={handleChange} required />
+              </div>
               <div className="input-group">
                 <label>Age</label>
                 <input type="number" className="input" name="age" value={activePayload.age || ''} onChange={handleChange} required min="18" max="75" />
