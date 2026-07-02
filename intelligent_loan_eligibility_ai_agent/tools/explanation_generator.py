@@ -104,23 +104,23 @@ def build_deterministic_report(
     credit = parse_number(customer_data.get("credit_score", 0)) or 0
     requested = int(parse_number(customer_data.get("loan_amount_requested", 0)) or 0)
     
-    reasons_str = "\n".join([f"- {r}" for r in reasons]) if reasons else "- Profile complies with baseline standards."
+    reasons_str = "\n".join([f"  • {r}" for r in reasons]) if reasons else "  • Profile complies with baseline standards."
 
-    report = f"""### 1. Underwriting Decision Summary
-- **Verdict:** {verdict}
-- **Credit Score Assessment:** {score}/100
-- **Process Mode:** Local Rule Engine Policy Evaluation
+    report = f"""1. Underwriting Decision Summary
+  Verdict: {verdict}
+  Credit Score Assessment: {score}/100
+  Process Mode: Local Rule Engine Policy Evaluation
 
-### 2. Underwriter Assessment
-- **Applicant Name:** {name}
-- **Monthly Verified Income:** INR {income:,}
-- **Credit Bureau Score:** {credit}
-- **Requested Capital:** INR {requested:,}
+2. Underwriter Assessment
+  Applicant Name: {name}
+  Monthly Verified Income: INR {income:,}
+  Credit Bureau Score: {credit}
+  Requested Capital: INR {requested:,}
 
-### 3. Key Policy Rule Violations/Flags
+3. Key Policy Rule Violations/Flags
 {reasons_str}
 
-### 4. Supporting Policy Document Findings
-{retrieved_policy}
+4. Supporting Policy Document Findings
+  {retrieved_policy}
 """
     return report

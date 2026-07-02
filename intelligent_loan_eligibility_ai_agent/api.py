@@ -210,26 +210,26 @@ def _get_fallback_chat_response(query: str, payload: Dict[str, Any], result: Dic
     if any(x in q for x in ["improve", "how to", "what to do", "increase", "better", "fix", "rectify", "help"]):
         advice = []
         if evaluation.eligibility == "Eligible":
-            return "Your application is currently rated as **Eligible**. You do not need to make any specific profile improvements. Please proceed with submitting your standard KYC documents (PAN/Aadhaar, address proof, bank statements, and salary slips) for formal underwriting review."
+            return "Your application is currently rated as Eligible. You do not need to make any specific profile improvements. Please proceed with submitting your standard KYC documents (PAN/Aadhaar, address proof, bank statements, and salary slips) for formal underwriting review."
             
         # Address income / DTI
         if evaluation.required_income_for_eligibility > 0:
             needed_formatted = f"INR {int(evaluation.required_income_for_eligibility):,}"
-            advice.append(f"• **Increase Monthly Income:** Your income is below the optimal threshold for the requested loan. Increasing your monthly income to approximately **{needed_formatted}** or adding a co-applicant with regular income will significantly improve your status.")
+            advice.append(f"  • Increase Monthly Income: Your income is below the optimal threshold for the requested loan. Increasing your monthly income to approximately {needed_formatted} or adding a co-applicant with regular income will significantly improve your status.")
             
         # Address credit score
         credit = payload.get("credit_score", 0)
         try:
             credit_val = int(parse_number(credit) or 0)
             if credit_val < 750:
-                advice.append("• **Boost Credit Score:** Your current credit score is below our premium benchmark (750). To improve this, ensure all utility bills, credit card balances, and existing EMI payments are settled on time, and limit new credit inquiries.")
+                advice.append("  • Boost Credit Score: Your current credit score is below our premium benchmark (750). To improve this, ensure all utility bills, credit card balances, and existing EMI payments are settled on time, and limit new credit inquiries.")
         except:
             pass
             
         # Address existing liabilities / EMI
         existing = payload.get("existing_loan")
         if existing == "Yes" or payload.get("monthly_loan_payment"):
-            advice.append("• **Reduce Outstanding Debt:** High existing monthly EMI obligations increase your debt-to-income ratio. Paying off smaller outstanding loans before applying will lower your liabilities and boost borrowing eligibility.")
+            advice.append("  • Reduce Outstanding Debt: High existing monthly EMI obligations increase your debt-to-income ratio. Paying off smaller outstanding loans before applying will lower your liabilities and boost borrowing eligibility.")
             
         # Address requested loan amount
         requested = payload.get("loan_amount_requested", 0)
@@ -239,12 +239,12 @@ def _get_fallback_chat_response(query: str, payload: Dict[str, Any], result: Dic
             if income_val > 0 and (requested_val / income_val) > 20:
                 suggested_max = income_val * 20
                 suggested_formatted = f"INR {int(suggested_max):,}"
-                advice.append(f"• **Reduce Requested Amount:** The requested loan amount is high relative to your income. Consider lowering your request to around **{suggested_formatted}** to fit within the standard multiplier guidelines.")
+                advice.append(f"  • Reduce Requested Amount: The requested loan amount is high relative to your income. Consider lowering your request to around {suggested_formatted} to fit within the standard multiplier guidelines.")
         except:
             pass
             
         if not advice:
-            advice.append("• **Provide Co-applicant Details:** Adding a co-applicant (spouse or parent) with a stable income and a strong credit history can help mitigate high-risk indicators.")
+            advice.append("  • Provide Co-applicant Details: Adding a co-applicant (spouse or parent) with a stable income and a strong credit history can help mitigate high-risk indicators.")
             
         response_str = "Based on our policy rules, here are key actionable steps you can take to improve your loan eligibility:\n\n" + "\n\n".join(advice)
         return response_str
@@ -253,15 +253,15 @@ def _get_fallback_chat_response(query: str, payload: Dict[str, Any], result: Dic
     if any(x in q for x in ["why", "reason", "rejected", "decline", "failed", "not eligible"]):
         reasons = evaluation.reasons
         if reasons:
-            reasons_str = "\n".join([f"- {r}" for r in reasons])
-            return f"Your preliminary assessment status is **{evaluation.eligibility}** due to the following policy criteria:\n\n{reasons_str}\n\nOur system requires applicants to meet specific thresholds for age, income, debt-to-income ratio, and credit history to ensure institutional compliance."
+            reasons_str = "\n".join([f"  • {r}" for r in reasons])
+            return f"Your preliminary assessment status is {evaluation.eligibility} due to the following policy criteria:\n\n{reasons_str}\n\nOur system requires applicants to meet specific thresholds for age, income, debt-to-income ratio, and credit history to ensure institutional compliance."
         else:
             return "Your application does not currently meet our baseline eligibility criteria. This is typically due to a combination of credit score, debt-to-income ratio, or income requirements."
             
     # 3. Default fallback answer
     return (
-        f"As your virtual assistant, I can confirm your current preliminary assessment status is **{evaluation.eligibility}** "
-        f"with an eligibility score of **{evaluation.score}/100**. For specific tips on how to improve this assessment, please ask 'What should I improve?'"
+        f"As your virtual assistant, I can confirm your current preliminary assessment status is {evaluation.eligibility} "
+        f"with an eligibility score of {evaluation.score}/100. For specific tips on how to improve this assessment, please ask 'What should I improve?'"
     )
 
 @app.get("/api/dashboard")
