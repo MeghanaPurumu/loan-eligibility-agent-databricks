@@ -6,7 +6,8 @@ __pycache__/
 *.so
 *.egg
 *.egg-info/
-dist/
+# Python build artifacts (top-level only — do NOT block frontend-react/dist)
+/dist/
 build/
 .eggs/
 

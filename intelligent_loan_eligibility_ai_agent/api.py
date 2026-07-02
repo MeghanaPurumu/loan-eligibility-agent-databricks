@@ -30,11 +30,12 @@ DATA_PATH = BASE_DIR / "data" / "mock_customers.csv"
 RULES_PATH = settings.RULES_PATH
 DB_PATH = BASE_DIR / "loan_assessment_logs.db"
 
-# Mount the React build directory if it exists
+# Mount the React build directory only if the full build output (including assets) exists
 frontend_dist = BASE_DIR / "frontend-react" / "dist"
+frontend_assets = frontend_dist / "assets"
 
-if frontend_dist.exists():
-    app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="assets")
+if frontend_assets.exists():
+    app.mount("/assets", StaticFiles(directory=frontend_assets), name="assets")
 
 @app.get("/")
 def serve_react_app():
