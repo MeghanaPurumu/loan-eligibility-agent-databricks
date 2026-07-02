@@ -10,11 +10,10 @@ export default function AssessmentWorkspace({
   API_BASE_URL 
 }: any) {
   const [loading, setLoading] = useState(false);
-  const [rules, setRules] = useState<any>(null);
 
   useEffect(() => {
     axios.get(`${API_BASE_URL}/rules`)
-      .then(res => setRules(res.data))
+      .then(res => console.log("Rules loaded:", res.data))
       .catch(err => console.error("Error fetching rules:", err));
   }, []);
 

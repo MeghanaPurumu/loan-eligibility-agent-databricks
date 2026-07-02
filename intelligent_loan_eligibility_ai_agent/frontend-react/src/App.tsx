@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
 import axios from 'axios';
 import { Settings, Users, FileText, MessageSquare, BarChart2 } from 'lucide-react';
 import './index.css';
