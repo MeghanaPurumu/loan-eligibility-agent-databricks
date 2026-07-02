@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 from config import settings
 from tools.custom_llm import CustomDatabricksChat
 from langchain_core.messages import SystemMessage, HumanMessage
+from core.utils import parse_number
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +34,11 @@ def generate_explanation(
     Generates natural language reasoning report using Langchain LLM abstractions.
     Falls back to a deterministic generator if model invocation fails.
     """
+    _requested = parse_number(customer_data.get('loan_amount_requested', 0)) or 0
     user_prompt = f"""
     Evaluate the following application:
     Customer: {customer_data.get('name', 'Applicant')}
-    Requested Amount: INR {customer_data.get('loan_amount_requested', 0):,}
+    Requested Amount: INR {int(_requested):,}
     Verdict: {verdict}
     Score: {score}/100
     Rule engine factors: {factors}
@@ -98,9 +100,9 @@ def build_deterministic_report(
 ) -> str:
     """Deterministic fallback in case LLM endpoints are unreachable."""
     name = customer_data.get("name", "Applicant")
-    income = customer_data.get("monthly_income", 0)
-    credit = customer_data.get("credit_score", 0)
-    requested = customer_data.get("loan_amount_requested", 0)
+    income = int(parse_number(customer_data.get("monthly_income", 0)) or 0)
+    credit = parse_number(customer_data.get("credit_score", 0)) or 0
+    requested = int(parse_number(customer_data.get("loan_amount_requested", 0)) or 0)
     
     reasons_str = "\n".join([f"- {r}" for r in reasons]) if reasons else "- Profile complies with baseline standards."
 
