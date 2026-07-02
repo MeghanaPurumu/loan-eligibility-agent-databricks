@@ -11,6 +11,9 @@ from agents.loan_orchestrator import orchestrate_loan_assessment
 import sqlite3
 import re
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 app = FastAPI(title="Intelligent Loan Eligibility AI Agent API")
 
 # Allow CORS for local React development
@@ -26,6 +29,18 @@ BASE_DIR = Path(__file__).parent
 DATA_PATH = BASE_DIR / "data" / "mock_customers.csv"
 RULES_PATH = settings.RULES_PATH
 DB_PATH = BASE_DIR / "loan_assessment_logs.db"
+
+# Mount the React build directory if it exists
+frontend_dist = BASE_DIR / "frontend-react" / "dist"
+
+if frontend_dist.exists():
+    app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="assets")
+
+@app.get("/")
+def serve_react_app():
+    if (frontend_dist / "index.html").exists():
+        return FileResponse(frontend_dist / "index.html")
+    return {"message": "Frontend build not found. Please run 'npm run build' in frontend-react."}
 
 class AssessRequest(BaseModel):
     payload: Dict[str, Any]
